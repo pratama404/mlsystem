@@ -88,21 +88,3 @@ def data_preprocessing(data):
     df[["pc2_1", "pc2_2"]] = pca_2.transform(data[pca_numerical_columns_2])
     
     return df
-
-def prediction(data):
-    """Making prediction
- 
-    Args:
-        data (Pandas DataFrame): Dataframe that contain all the preprocessed data
- 
-    Returns:
-        str: Prediction result (Good, Standard, or Poor)
-    """
-    # URL endpoint dari model yang sedang di-serve
-    url = "http://localhost:5000/invocations"
-    headers = {"Content-Type": "application/json"}
-    response = requests.post(url, data=data, headers=headers)
-    response = response.json().get("predictions")
-    result_target = joblib.load("model/encoder_target.joblib")
-    final_result = result_target.inverse_transform(response)
-    return final_result
