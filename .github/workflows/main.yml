@@ -11,6 +11,7 @@ on:
 env:
   CSV_URL: "train_pca.csv"
   TARGET_VAR: "Credit_Score"
+  PROJECT_PATH: "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi/MLproject"
 
 jobs:
   build:
@@ -33,24 +34,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install mlflow
 
-      # 4️⃣ Jalankan MLflow project
+      # 4️⃣ Jalankan MLflow Project
       - name: Run MLflow Project
         run: |
-          cd "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi/MLproject"
+          cd "$PROJECT_PATH"
           mlflow run . --env-manager=local
 
       # 5️⃣ Ambil run_id terakhir
       - name: Get latest MLflow run_id
+        id: get_run
         run: |
+          cd "$PROJECT_PATH"
           RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
-          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest run_id: $RUN_ID"
 
-      # 6️⃣ Build Docker image dari model
+      # 6️⃣ Build Docker Model dari run_id sebelumnya
       - name: Build Docker Model
         run: |
-          cd "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi/MLproject"
-          mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "cc"
+          cd "$PROJECT_PATH"
+          echo "Building model from run ID: ${{ steps.get_run.outputs.run_id }}"
+          mlflow models build-docker --model-uri "runs:/${{ steps.get_run.outputs.run_id }}/model" --name "cc"
 
       # 7️⃣ Login ke Docker Hub
       - name: Log in to Docker Hub
@@ -59,12 +63,12 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      # 8️⃣ Tag Docker image
+      # 8️⃣ Tag Docker Image
       - name: Tag Docker Image
         run: |
           docker tag cc ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
 
-      # 9️⃣ Push Docker image ke Docker Hub
+      # 9️⃣ Push Docker Image ke Docker Hub
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
