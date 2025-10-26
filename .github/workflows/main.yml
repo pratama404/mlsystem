@@ -9,8 +9,7 @@ on:
       - main
 
 env:
-  PROJECT_PATH: "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi"
-  CSV_URL: "MLproject/train_pca.csv"
+  CSV_URL: "train_pca.csv"
   TARGET_VAR: "Credit_Score"
 
 jobs:
@@ -22,8 +21,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Python 3.12.7
-      - name: Set up Python
+      # 2️⃣ Setup Python
+      - name: Set up Python 3.12.7
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.7"
@@ -34,43 +33,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install mlflow
 
-      # 4️⃣ Check environment variables
-      - name: Check environment variables
+      # 4️⃣ Jalankan MLflow project
+      - name: Run MLflow Project
         run: |
-          echo "Dataset path: $CSV_URL"
-          echo "Target variable: $TARGET_VAR"
-
-      # 5️⃣ Run MLflow project
-      - name: Run MLflow project
-        run: |
-          cd "$PROJECT_PATH"
+          cd "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi/MLproject"
           mlflow run . --env-manager=local
 
-      # 6️⃣ Get latest MLflow run_id
+      # 5️⃣ Ambil run_id terakhir
       - name: Get latest MLflow run_id
         run: |
           RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest run_id: $RUN_ID"
 
-      # 7️⃣ Build Docker model from MLflow
+      # 6️⃣ Build Docker image dari model
       - name: Build Docker Model
         run: |
+          cd "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi/MLproject"
           mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "cc"
 
-      # 8️⃣ Login to Docker Hub
+      # 7️⃣ Login ke Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      # 9️⃣ Tag Docker image
+      # 8️⃣ Tag Docker image
       - name: Tag Docker Image
         run: |
           docker tag cc ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
 
-      # 🔟 Push Docker image to Docker Hub
+      # 9️⃣ Push Docker image ke Docker Hub
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
