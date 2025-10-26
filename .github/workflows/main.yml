@@ -9,7 +9,8 @@ on:
       - main
 
 env:
-  CSV_URL: "MLproject/train_pca.csv"
+  PROJECT_PATH: "Modul 4 - Serving Model dengan Gaya/Cinta Segitiga Latihan Integrasi"
+  CSV_URL: "train_pca.csv"
   TARGET_VAR: "Credit_Score"
 
 jobs:
@@ -25,48 +26,53 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.7"
-      
-      # Check Env Variables
+
+      # Check environment variables
       - name: Check Env
         run: |
-          echo $CSV_URL
+          echo "CSV_URL: $CSV_URL"
+          echo "TARGET_VAR: $TARGET_VAR"
+          echo "PROJECT_PATH: $PROJECT_PATH"
 
-      # Install mlflow
+      # Install MLflow
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mlflow  
-          
-      # Run mlflow project
+          pip install mlflow
+
+      # Run MLflow project
       - name: Run mlflow project
         run: |
-          mlflow run MLproject --env-manager=local 
-      
-      # Get latest run_id
+          cd "$PROJECT_PATH"
+          mlflow run . --env-manager=local
+
+      # Get latest MLflow run_id
       - name: Get latest MLflow run_id
         run: |
+          cd "$PROJECT_PATH"
           RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest run_id: $RUN_ID"
-          
-      # Build Docker Model
+
+      # Build Docker model
       - name: Build Docker Model
         run: |
-          mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "cc" 
+          cd "$PROJECT_PATH"
+          mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "cc"
 
-      # ✅ Correct Docker Hub Login
+      # Login to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
 
       # Tag the Docker image
       - name: Tag Docker Image
         run: |
-          docker tag cc ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
+          docker tag cc ${{ secrets.DOCKER_USERNAME }}/cc:latest
 
       # Push Docker image to Docker Hub
       - name: Push Docker Image
         run: |
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/cc:latest
